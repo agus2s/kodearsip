@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Klasifikasi Kemenag - KMA 44/2010</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-emerald-800 text-white p-6 shadow-lg">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-white rounded-xl shadow-inner">
+                    <i data-lucide="book" class="text-emerald-800 w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">E-Klasifikasi Kemenag</h1>
+                    <p class="text-emerald-100 text-sm italic">Sesuai KMA No. 44 Tahun 2010</p>
+                </div>
+            </div>
+            <div class="text-right hidden md:block">
+                <span class="bg-emerald-700/50 border border-emerald-500/30 px-3 py-1 rounded text-xs font-semibold uppercase tracking-wider">Pola Klasifikasi Arsip</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 md:p-8">
+        <!-- Search and Filters -->
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 mb-8 -mt-12 md:-mt-16 z-10 relative">
+            <div class="flex flex-col gap-5">
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput"
+                        placeholder="Cari kode (e.g. PP.00) atau kata kunci (e.g. Kurikulum, Ijazah, Mutasi)..."
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all shadow-inner"
+                    >
+                </div>
+                
+                <div id="categoryFilters" class="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <!-- Category buttons will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Info -->
+        <div class="mb-6 flex items-center justify-between text-slate-500 text-sm px-2">
+            <p id="resultCount" class="font-medium">Memuat data...</p>
+            <button id="resetBtn" class="hidden text-emerald-600 hover:text-emerald-800 font-semibold underline underline-offset-4">Reset</button>
+        </div>
+
+        <!-- Results List -->
+        <div id="resultsList" class="grid gap-4">
+            <!-- Items will be injected here -->
+        </div>
+    </main>
+
+    <footer class="mt-20 py-12 bg-white border-t border-slate-200 text-center">
+        <div class="max-w-4xl mx-auto px-4">
+            <p class="text-slate-600 font-semibold italic mb-2">"Ikhlas Beramal"</p>
+            <p class="text-slate-400 text-sm">Aplikasi Database Pola Klasifikasi Surat Kementerian Agama RI</p>
+            <p class="text-slate-400 text-xs mt-1 font-mono uppercase">Referensi: KMA Nomor 44 Tahun 2010</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-sm text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700 z-50 transition-all opacity-0 translate-y-10 pointer-events-none">
+        <div class="bg-emerald-500 p-1 rounded-full">
+            <i data-lucide="check" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-medium">Kode berhasil disalin!</span>
+    </div>
+
+    <script>
+        const KEMENAG_DATA = [
+            { code: 'OT.00', category: 'Organisasi', description: 'Organisasi' },
+            { code: 'OT.01', category: 'Organisasi', description: 'Tata Laksana' },
+            { code: 'OT.01.1', category: 'Organisasi', description: 'Perencanaan' },
+            { code: 'OT.01.2', category: 'Organisasi', description: 'Laporan' },
+            { code: 'OT.01.3', category: 'Organisasi', description: 'Penyusunan Prosedur Kerja' },
+            { code: 'OT.01.4', category: 'Organisasi', description: 'Penyusunan Pembakuan Sarana Kerja' },
+            { code: 'HM.00', category: 'Kehumasan', description: 'Penerangan' },
+            { code: 'HM.01', category: 'Kehumasan', description: 'Hubungan' },
+            { code: 'HM.02', category: 'Kehumasan', description: 'Dokumentasi dan Keputusan' },
+            { code: 'HM.02.1', category: 'Kehumasan', description: 'Dokumentasi' },
+            { code: 'HM.02.2', category: 'Kehumasan', description: 'Kepustakaan (Penyediaan dan pengumpulan kepustakaan)' },
+            { code: 'HM.03', category: 'Kehumasan', description: 'Keprotokolan (Upacara dan HUT Kemenag)' },
+            { code: 'KP.00', category: 'Kepegawaian', description: 'Pengadaan (Formasi, Penerimaan, Pengangkatan)' },
+            { code: 'KP.00.1', category: 'Kepegawaian', description: 'Formasi (Perencanaan, Nota Usul, Formasi)' },
+            { code: 'KP.00.2', category: 'Kepegawaian', description: 'Penerimaan (Pengumuman, Panggilan, termasuk GTT/PTT)' },
+            { code: 'KP.00.3', category: 'Kepegawaian', description: 'Pengangkatan' },
+            { code: 'KP.01', category: 'Kepegawaian', description: 'Tata Usaha Kepegawaian' },
+            { code: 'KP.01.1', category: 'Kepegawaian', description: 'Izin/Dispensasi' },
+            { code: 'KP.01.2', category: 'Kepegawaian', description: 'Keterangan' },
+            { code: 'KP.02', category: 'Kepegawaian', description: 'Pendidikan Latihan' },
+            { code: 'KP.02.1', category: 'Kepegawaian', description: 'Diklat Prajabatan' },
+            { code: 'KP.02.2', category: 'Kepegawaian', description: 'Diklat Dalam Jabatan' },
+            { code: 'KP.02.3', category: 'Kepegawaian', description: 'Latihan/Kursus Penataran' },
+            { code: 'KP.03', category: 'Kepegawaian', description: 'KORPRI (Dharma Wanita, Pemilu dll)' },
+            { code: 'KP.04', category: 'Kepegawaian', description: 'Penilaian dan Hukuman' },
+            { code: 'KP.04.1', category: 'Kepegawaian', description: 'Penilaian' },
+            { code: 'KP.04.2', category: 'Kepegawaian', description: 'Hukuman' },
+            { code: 'KP.05', category: 'Kepegawaian', description: 'Screening' },
+            { code: 'KP.06', category: 'Kepegawaian', description: 'Pembinaan Mental' },
+            { code: 'KP.07', category: 'Kepegawaian', description: 'Mutasi (Kepangkatan, Kenaikan Berkala, Alih Tugas)' },
+            { code: 'KP.08', category: 'Kepegawaian', description: 'Kesejahteraan (Kesehatan, Cuti, Perumahan, Penghargaan)' },
+            { code: 'KP.09', category: 'Kepegawaian', description: 'Pemutusan Hubungan Kerja (Pensiun, Meninggal Dunia)' },
+            { code: 'KU.00', category: 'Keuangan', description: 'Anggaran (Rutin, Pembangunan, Non-Budgeter)' },
+            { code: 'KU.01', category: 'Keuangan', description: 'SPP (Beban Tetap dan Sementara)' },
+            { code: 'KU.02', category: 'Keuangan', description: 'SPJ (Rutin, Pembangunan, Non-Budgeter)' },
+            { code: 'KU.03', category: 'Keuangan', description: 'Pendapatan Negara (Pajak dan Bukan Pajak)' },
+            { code: 'KU.04', category: 'Keuangan', description: 'Perbankan (Valas, Transfer, Saldo Rekening)' },
+            { code: 'KU.05', category: 'Keuangan', description: 'Sumbangan/Bantuan' },
+            { code: 'KS.00', category: 'Kesekretariatan', description: 'Kerumahtanggaan (Pinjam Fasilitas, Keamanan, Pakaian Dinas)' },
+            { code: 'KS.01', category: 'Kesekretariatan', description: 'Perlengkapan (Gedung, ATK, Kendaraan, Inventaris)' },
+            { code: 'KS.02', category: 'Kesekretariatan', description: 'Ketatausahaan (Korespondensi, Kearsipan, Cap Dinas)' },
+            { code: 'HK.00', category: 'Hukum', description: 'Peraturan Perundang-undangan (UU, PP, Kepres, KMA)' },
+            { code: 'HK.01', category: 'Hukum', description: 'Pidana (Pencurian, Korupsi)' },
+            { code: 'HK.02', category: 'Hukum', description: 'Perdata (Perikatan)' },
+            { code: 'HK.03', category: 'Hukum', description: 'Hukum Agama (Fatwa, Rukyat/Hisab, Hari Besar)' },
+            { code: 'HK.04', category: 'Hukum', description: 'Bantuan Hukum (Kasus Pidana/Perdata)' },
+            { code: 'HJ.00', category: 'Haji', description: 'Calon Haji' },
+            { code: 'HJ.01', category: 'Haji', description: 'Bimbingan' },
+            { code: 'HJ.02', category: 'Haji', description: 'Petugas Haji' },
+            { code: 'HJ.03', category: 'Haji', description: 'Ongkos Naik Haji' },
+            { code: 'HJ.04', category: 'Haji', description: 'Jamaah Calon Haji' },
+            { code: 'HJ.05', category: 'Haji', description: 'Angkutan' },
+            { code: 'HJ.06', category: 'Haji', description: 'Pengasramaan' },
+            { code: 'HJ.07', category: 'Haji', description: 'Pembekalan' },
+            { code: 'HJ.08', category: 'Haji', description: 'Dispensasi / Rekomendasi Khusus' },
+            { code: 'HJ.09', category: 'Haji', description: 'Umroh' },
+            { code: 'BA.00', category: 'Pembinaan Agama', description: 'Penyuluhan' },
+            { code: 'BA.01', category: 'Pembinaan Agama', description: 'Bimbingan' },
+            { code: 'BA.01.1', category: 'Pembinaan Agama', description: 'Lembaga Keagamaan' },
+            { code: 'BA.01.2', category: 'Pembinaan Agama', description: 'Aliran Kerohanian/Keagamaan' },
+            { code: 'BA.02', category: 'Pembinaan Agama', description: 'Kerukunan Hidup Beragama' },
+            { code: 'BA.03', category: 'Pembinaan Agama', description: 'Ibadah dan Ibadah Sosial' },
+            { code: 'BA.03.1', category: 'Pembinaan Agama', description: 'Ibadah' },
+            { code: 'BA.03.2', category: 'Pembinaan Agama', description: 'Ibadah Sosial' },
+            { code: 'BA.04', category: 'Pembinaan Agama', description: 'Pengembangan Keagamaan' },
+            { code: 'BA.05', category: 'Pembinaan Agama', description: 'Rohaniwan' },
+            
+            // PP - Pendidikan dan Pengajaran (Updated)
+            { code: 'PP.00', category: 'Pendidikan', description: 'Kurikulum' },
+            { code: 'PP.00.1', category: 'Pendidikan', description: 'Sekolah Umum Tingkat TK dan SD' },
+            { code: 'PP.00.2', category: 'Pendidikan', description: 'Sekolah Umum Tingkat SMTP' },
+            { code: 'PP.00.3', category: 'Pendidikan', description: 'Sekolah Umum Tingkat SMTA' },
+            { code: 'PP.00.4', category: 'Pendidikan', description: 'Perguruan Agama Tk. RA dan Ibtidaiyah' },
+            { code: 'PP.00.5', category: 'Pendidikan', description: 'Perguruan Agama Tk. Tsanawiyah' },
+            { code: 'PP.00.6', category: 'Pendidikan', description: 'Perguruan Agama Tk. Aliyah' },
+            { code: 'PP.00.7', category: 'Pendidikan', description: 'Pondok Pesantren' },
+            { code: 'PP.00.8', category: 'Pendidikan', description: 'Diniyah' },
+            { code: 'PP.00.9', category: 'Pendidikan', description: 'Perguruan Tinggi Agama' },
+            { code: 'PP.00.10', category: 'Pendidikan', description: 'Perguruan Tinggi Umum' },
+            { code: 'PP.00.11', category: 'Pendidikan', description: 'Pengembangan Sarjana Pendidikan' },
+            { code: 'PP.01', category: 'Pendidikan', description: 'Evaluasi dan Ijazah' },
+            { code: 'PP.01.1', category: 'Pendidikan', description: 'Perguruan Agama' },
+            { code: 'PP.01.2', category: 'Pendidikan', description: 'Perguruan Umum' },
+            { code: 'PP.02', category: 'Pendidikan', description: 'Kepenilikan, Pengawasan dan Pembinaan' },
+            { code: 'PP.02.1', category: 'Pendidikan', description: 'Kepenilikan' },
+            { code: 'PP.02.2', category: 'Pendidikan', description: 'Pengawasan' },
+            { code: 'PP.02.3', category: 'Pendidikan', description: 'Pembinaan' },
+            { code: 'PP.03', category: 'Pendidikan', description: 'Kelembagaan' },
+            { code: 'PP.03.1', category: 'Pendidikan', description: 'Organisasi (Ekstra Kurikuler)' },
+            { code: 'PP.03.2', category: 'Pendidikan', description: 'Pengembangan (Filial, kelas Jauh, Penyesuaian Status Swasta-Negeri)' },
+            { code: 'PP.04', category: 'Pendidikan', description: 'Beasiswa' },
+            { code: 'PP.05', category: 'Pendidikan', description: 'Sumbangan (uang sekolah, uang ujian dll)' },
+            { code: 'PP.06', category: 'Pendidikan', description: 'Pengabdian (KKN dll)' },
+            { code: 'PP.07', category: 'Pendidikan', description: 'Perizinan (Izin Belajar dll)' },
+            
+            { code: 'PS.00', category: 'Pengawasan', description: 'Pengawasan Administrasi Umum' },
+            { code: 'PS.01', category: 'Pengawasan', description: 'Tugas Umum (Fisik dan Non Fisik)' },
+            { code: 'PS.02', category: 'Pengawasan', description: 'Proyek Pembangunan' },
+            { code: 'PW.00', category: 'Perkawinan', description: 'Penyuluhan' },
+            { code: 'PW.01', category: 'Perkawinan', description: 'Perkawinan' },
+            { code: 'PW.02', category: 'Perkawinan', description: 'Campuran Antar Agama dan Bangsa' }
+        ];
+
+        let state = {
+            searchTerm: '',
+            selectedCategory: 'Semua'
+        };
+
+        const iconsMap = {
+            'Organisasi': 'settings',
+            'Kehumasan': 'megaphone',
+            'Kepegawaian': 'user',
+            'Keuangan': 'briefcase',
+            'Kesekretariatan': 'home',
+            'Hukum': 'scale',
+            'Haji': 'map-pin',
+            'Pembinaan Agama': 'heart',
+            'Pendidikan': 'school',
+            'Pengawasan': 'shield-check',
+            'Perkawinan': 'users'
+        };
+
+        function renderCategories() {
+            const categories = ['Semua', ...new Set(KEMENAG_DATA.map(item => item.category))];
+            const filterContainer = document.getElementById('categoryFilters');
+            filterContainer.innerHTML = categories.map(cat => `
+                <button onclick="setCategory('${cat}')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold transition-all border whitespace-nowrap ${
+                    state.selectedCategory === cat 
+                    ? 'bg-emerald-800 text-white border-emerald-800 shadow-md transform scale-105' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'
+                }">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function renderResults() {
+            const list = document.getElementById('resultsList');
+            const filtered = KEMENAG_DATA.filter(item => {
+                const matchesSearch = item.code.toLowerCase().includes(state.searchTerm.toLowerCase()) || 
+                                     item.description.toLowerCase().includes(state.searchTerm.toLowerCase());
+                const matchesCategory = state.selectedCategory === 'Semua' || item.category === state.selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            document.getElementById('resultCount').innerHTML = `Ditemukan <span class="text-emerald-700 font-bold">${filtered.length}</span> kode klasifikasi`;
+            document.getElementById('resetBtn').classList.toggle('hidden', !state.searchTerm);
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                        <div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="info" class="w-10 h-10 text-slate-300"></i>
+                        </div>
+                        <h3 class="text-slate-600 font-bold text-lg">Tidak ada hasil yang cocok</h3>
+                        <p class="text-slate-400 max-w-xs mx-auto mt-2">Coba kata kunci lain atau pilih kategori yang berbeda.</p>
+                    </div>
+                `;
+            } else {
+                list.innerHTML = filtered.map((item, idx) => `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg hover:border-emerald-200 transition-all group flex items-start justify-between gap-4">
+                        <div class="flex gap-4">
+                            <div class="p-3 rounded-2xl bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100 transition-colors shrink-0">
+                                <i data-lucide="${iconsMap[item.category] || 'file-text'}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span class="font-mono font-black text-xl text-emerald-900 tracking-tighter">${item.code}</span>
+                                    <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded-lg bg-slate-100 text-slate-600">
+                                        ${item.category}
+                                    </span>
+                                </div>
+                                <p class="text-slate-700 font-medium leading-relaxed">${item.description}</p>
+                            </div>
+                        </div>
+                        <button onclick="copyToClipboard('${item.code}')" class="shrink-0 p-3 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all active:scale-95 border border-transparent hover:border-emerald-100" title="Salin Kode">
+                            <i data-lucide="copy" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function setCategory(cat) {
+            state.selectedCategory = cat;
+            renderCategories();
+            renderResults();
+        }
+
+        function copyToClipboard(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            const toast = document.getElementById('toast');
+            toast.querySelector('span').innerText = `Kode ${text} berhasil disalin!`;
+            toast.classList.remove('opacity-0', 'translate-y-10', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10', 'pointer-events-none');
+            }, 2000);
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            state.searchTerm = e.target.value;
+            renderResults();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            state.searchTerm = '';
+            document.getElementById('searchInput').value = '';
+            renderResults();
+        });
+
+        // Init
+        window.onload = () => {
+            renderCategories();
+            renderResults();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
